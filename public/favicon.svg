@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#1c1612"/>
+  <rect x="2" y="2" width="28" height="28" fill="none" stroke="#8e2f2a" stroke-width="2"/>
+  <text x="16" y="22" text-anchor="middle" font-size="16" fill="#f4efe4" font-family="serif">秤</text>
+</svg>
