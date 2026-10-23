@@ -340,6 +340,8 @@ export interface AppState {
   note: string;
   hasSave: boolean;
   warnFight: boolean;
+  /** 對決畫面自動出攻擊。唔寫入存檔。 */
+  autoFight: boolean;
   battle: BattleState | null;
   /** 開戰瞬間嘅庫存。幫派偏置用呢份，唔用打完之後嘅袋。 */
   preFightStock: Record<string, number> | null;

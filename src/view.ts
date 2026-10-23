@@ -16,7 +16,7 @@ import {
   statError,
   statPointDelta,
 } from './rules.ts';
-import type { AppState, ChapterConfig, EffectSelection, PlayerState } from './types.ts';
+import type { AppState, ChapterConfig, ChargenReport, EffectSelection, PlayerState } from './types.ts';
 
 const SCORE_HINT =
   '攻同防按數值計（敵方降防取絕對值）。命中、閃避每 5 計 1。回血每 2 計 1。傷害倍率 1.2 計 2、1.5 計 3，中間直線內插。反傷按數值。揭示情報計 0。';
@@ -119,8 +119,8 @@ function renderChargen(config: ChapterConfig, state: AppState): string {
           <input id="catchphrase" name="catchphrase" data-action="field-catchphrase" autocomplete="off" placeholder="例如：秤平先開市" value="${esc(state.draft.catchphrase)}">
         </label>
         <h3>六圍</h3>
-        <p class="pool-text ${report.overBudget ? 'bad-text' : ''}">已用 ${esc(formatNum(spent))} · 預算 ${esc(formatNum(budget))} · 剩餘 ${esc(formatNum(remaining))}</p>
-        <div class="meter ${report.overBudget ? 'over' : ''}" style="--fill: ${ratio.toFixed(4)}"><span></span></div>
+        <p id="pool-text" class="pool-text ${report.overBudget ? 'bad-text' : ''}">已用 ${esc(formatNum(spent))} · 預算 ${esc(formatNum(budget))} · 剩餘 ${esc(formatNum(remaining))}</p>
+        <div id="pool-meter" class="meter ${report.overBudget ? 'over' : ''}" style="--fill: ${ratio.toFixed(4)}"><span></span></div>
         <p class="hint">由基線重配。氣血每點 ${esc(formatNum(hpPerPoint))}。剩餘點數可以留低。</p>
         ${Object.keys(config.chargen.statPool.baseline)
           .map((key) => renderStat(config, state, key, forbidStats.has(key)))
@@ -147,12 +147,12 @@ function renderChargen(config: ChapterConfig, state: AppState): string {
         </label>
         <div class="effect-head">
           <h3>效果</h3>
-          <p class="power ${report.overPower ? 'bad-text' : ''}">威力 ${esc(formatNum(report.powerScore))} / ${esc(formatNum(report.powerMax))}</p>
+          <p id="power-text" class="power ${report.overPower ? 'bad-text' : ''}">威力 ${esc(formatNum(report.powerScore))} / ${esc(formatNum(report.powerMax))}</p>
         </div>
         ${state.draft.effects.map((effect, index) => renderEffect(config, effect, index, state.draft.effects.length)).join('')}
         ${
           state.draft.effects.length < config.chargen.skill.maxEffects
-            ? '<button type="button" data-action="effect-add">加一項效果</button>'
+            ? '<button type="button" id="effect-add" data-action="effect-add">加一項效果</button>'
             : `<p class="hint">效果已到上限 ${esc(formatNum(config.chargen.skill.maxEffects))} 項。</p>`
         }
         <details>
@@ -162,13 +162,11 @@ function renderChargen(config: ChapterConfig, state: AppState): string {
       </section>
       <div class="confirm-bar">
         <div id="issues" class="report ${report.valid ? 'ok' : ''}" aria-live="polite">
-          ${
-            report.valid
-              ? '<p>可以確認，落去市集看板。</p>'
-              : `<p>未可以確認。</p><ul>${report.issues.map((issue) => `<li>${esc(issue)}</li>`).join('')}</ul>`
-          }
+          ${renderIssues(report)}
         </div>
         <div class="actions">
+          <button type="button" id="random-fill" data-action="random-fill">隨機填好</button>
+          <button type="button" id="random-enter" data-action="random-enter">隨機開檔並進入市集</button>
           <button type="button" id="confirm" class="primary push" data-action="confirm" ${report.valid ? '' : 'disabled'} aria-describedby="issues">確認開檔</button>
         </div>
       </div>
@@ -188,12 +186,12 @@ function renderStat(config: ChapterConfig, state: AppState, key: string, forbidd
   const hpHint = key === 'hp' ? ` · 每點 ${formatNum(config.chargen.statPool.hpPerPoint)} 氣血` : '';
   const classes = ['stat', error ? 'bad' : '', forbidden ? 'forbid' : ''].filter(Boolean).join(' ');
   const shown = Number.isFinite(value) ? String(value) : '';
-  return `<div class="${classes}">
+  return `<div class="${classes}" id="stat-row-${esc(key)}">
     <label for="stat-${esc(key)}">${esc(statLabel(key))}</label>
-    <button type="button" class="step" data-action="stat-dec" data-stat="${esc(key)}" aria-label="減少${esc(statLabel(key))}" ${bounds.atMin ? 'disabled' : ''}>−</button>
+    <button type="button" class="step" id="stat-dec-${esc(key)}" data-action="stat-dec" data-stat="${esc(key)}" aria-label="減少${esc(statLabel(key))}" ${bounds.atMin ? 'disabled' : ''}>−</button>
     <input id="stat-${esc(key)}" data-action="field-stat" data-stat="${esc(key)}" inputmode="decimal" type="number" step="${esc(String(step))}" value="${esc(shown)}">
-    <button type="button" class="step" data-action="stat-inc" data-stat="${esc(key)}" aria-label="增加${esc(statLabel(key))}" ${bounds.atMax ? 'disabled' : ''}>+</button>
-    <span class="delta">${esc(formatSigned(delta))} 點</span>
+    <button type="button" class="step" id="stat-inc-${esc(key)}" data-action="stat-inc" data-stat="${esc(key)}" aria-label="增加${esc(statLabel(key))}" ${bounds.atMax ? 'disabled' : ''}>+</button>
+    <span class="delta" id="stat-delta-${esc(key)}">${esc(formatSigned(delta))} 點</span>
     <small>${esc(hint + hpHint)}</small>
   </div>`;
 }
@@ -219,14 +217,14 @@ function renderEffect(config: ChapterConfig, effect: EffectSelection, index: num
             .join('')}
         </select>
       </label>
-      ${count > 1 ? `<button type="button" data-action="effect-remove" data-index="${index}">移除</button>` : ''}
+      ${count > 1 ? `<button type="button" id="effect-remove-${index}" data-action="effect-remove" data-index="${index}">移除</button>` : ''}
     </div>
     ${
       def
         ? `<div class="stepper">
-            <button type="button" class="step" data-action="effect-dec" data-index="${index}" aria-label="減少效果 ${index + 1} 數值" ${atMin ? 'disabled' : ''}>−</button>
-            <strong>${esc(formatNum(effect.value))}</strong>
-            <button type="button" class="step" data-action="effect-inc" data-index="${index}" aria-label="增加效果 ${index + 1} 數值" ${atMax ? 'disabled' : ''}>+</button>
+            <button type="button" class="step" id="effect-dec-${index}" data-action="effect-dec" data-index="${index}" aria-label="減少效果 ${index + 1} 數值" ${atMin ? 'disabled' : ''}>−</button>
+            <strong id="effect-value-${index}">${esc(formatNum(effect.value))}</strong>
+            <button type="button" class="step" id="effect-inc-${index}" data-action="effect-inc" data-index="${index}" aria-label="增加效果 ${index + 1} 數值" ${atMax ? 'disabled' : ''}>+</button>
           </div>
           <p class="hint">允許 ${esc(formatNum(def.min))}–${esc(formatNum(def.max))}${def.step ? `，每步 ${esc(formatNum(def.step))}` : ''} · 呢項計分 ${esc(formatNum(score ?? Number.NaN))}</p>`
         : '<p class="hint">請先選效果種類。</p>'
@@ -374,7 +372,9 @@ function renderCombat(config: ChapterConfig, state: AppState): string {
           ? `<button type="button" id="act-salt" data-action="battle-salt" ${saltLeft ? '' : 'disabled'}>${esc(salt.label)}</button>`
           : ''
       }
+      <button type="button" id="act-auto" data-action="battle-auto" aria-pressed="${state.autoFight ? 'true' : 'false'}">${state.autoFight ? '停止' : '自動'}</button>
     </div>
+    ${state.autoFight ? '<p class="hint" id="auto-hint">自動戰鬥：每回合只會攻擊。撳停止就返手動。</p>' : ''}
     ${battle.saltReady && salt ? `<p class="hint">下一擊傷害 +${esc(formatNum(salt.dmgAdd))}、命中 +${esc(formatNum(salt.hitAdd))}。</p>` : ''}
   </section>`;
 }
@@ -636,6 +636,11 @@ function renderGameOver(config: ChapterConfig): string {
     <p class="hint">讀檔會返到最近一次 OpenBoard 市集存檔。未存檔嘅市集變動會一併冇咗。</p>
     <div class="actions">${buttons}</div>
   </section>`;
+}
+
+export function renderIssues(report: ChargenReport): string {
+  if (report.valid) return '<p>可以確認，落去市集看板。</p>';
+  return `<p>未可以確認。</p><ul>${report.issues.map((issue) => `<li>${esc(issue)}</li>`).join('')}</ul>`;
 }
 
 function esc(value: string): string {

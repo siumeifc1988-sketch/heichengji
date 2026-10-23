@@ -5,6 +5,7 @@ import { DESIGN_INITIAL_CASH, DESIGN_MIN_DAMAGE } from '../src/design.ts';
 import { parseConfig } from '../src/config.ts';
 import { nearlyEqual, roundCash } from '../src/format.ts';
 import {
+  activeForbidStats,
   blankDraft,
   bringingWeapon,
   buyOne,
@@ -14,6 +15,7 @@ import {
   goodUnitPrice,
   legalStatValues,
   pointsSpent,
+  randomDraft,
   sellOne,
   stepStat,
   toggleEquip,
@@ -115,6 +117,45 @@ assert(nearForbid.valid, `atk 10 hp 22 should pass: ${nearForbid.issues.join(' |
 
 const overBudget = chargenReport(config, filled({ stats: { atk: 10, def: 5, spd: 8, dodge: 11 } }));
 assert(!overBudget.valid && overBudget.overBudget, 'over budget blocks');
+
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+let sawOneEffect = false;
+let sawMaxEffects = false;
+const randomNames = new Set<string>();
+for (let seed = 1; seed <= 80; seed += 1) {
+  const draft = randomDraft(config, mulberry32(seed));
+  const report = chargenReport(config, draft);
+  assert(report.valid, `random draft ${seed} valid: ${report.issues.join(' | ')}`);
+  assert(draft.name.trim().length > 0 && draft.catchphrase.trim().length > 0, `random text ${seed}`);
+  assert(draft.skillName.trim().length > 0 && draft.skillFlavor.trim().length > 0, `random skill text ${seed}`);
+  assert(config.chargen.skill.triggers.includes(draft.skillTrigger), `random trigger ${seed}`);
+  assert(
+    draft.effects.length >= 1 && draft.effects.length <= config.chargen.skill.maxEffects,
+    `random effect count ${seed}`,
+  );
+  assert(report.powerScore <= config.chargen.skill.maxPowerScore + 1e-6, `random power ${seed}`);
+  assert(report.pointsSpent <= config.chargen.statPool.budgetPoints + 1e-6, `random budget ${seed}`);
+  assert(report.pointsSpent >= 1 - 1e-6, `random spends a point ${seed}`);
+  assert(activeForbidStats(config, draft.stats).length === 0, `random forbid ${seed}`);
+  assert(!((draft.stats.atk ?? 0) >= 10 && (draft.stats.hp ?? 0) >= 24), `random not 防過強 ${seed}`);
+  const ops = draft.effects.map((effect) => effect.op);
+  assert(new Set(ops).size === ops.length, `random unique ops ${seed}`);
+  if (draft.effects.length === 1) sawOneEffect = true;
+  if (draft.effects.length === config.chargen.skill.maxEffects) sawMaxEffects = true;
+  randomNames.add(draft.name);
+}
+assert(sawOneEffect && sawMaxEffects, 'random drafts use 1 and max effects');
+assert(randomNames.size > 1, 'random names vary');
 
 const oddHp = chargenReport(config, filled({ stats: { hp: 21 } }));
 assert(oddHp.issues.some((issue) => issue.includes('氣血')), 'hp alignment');

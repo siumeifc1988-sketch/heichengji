@@ -12,6 +12,7 @@ export function createAppState(config: ChapterConfig, hasSave: boolean): AppStat
     note: '',
     hasSave,
     warnFight: false,
+    autoFight: false,
     battle: null,
     preFightStock: null,
     redeemStock: null,

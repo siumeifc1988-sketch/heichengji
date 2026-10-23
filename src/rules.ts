@@ -326,6 +326,32 @@ export function chargenReport(config: ChapterConfig, draft: ChargenDraft): Charg
   };
 }
 
+const RANDOM_NAMES = ['阿鹽', '秤仔', '灰斗', '陳末', '老秤', '細鹽', '黑斗', '阿灰'];
+const RANDOM_PHRASES = ['秤平先開市', '鹽盡先收秤', '先問價後動手', '黑市唔賒帳', '刀鈍鹽還在'];
+const RANDOM_SKILL_NAMES = ['碎鹽入眼', '破秤一擊', '鹽霧罩面', '秤砣砸腕', '收鹽補刀'];
+const RANDOM_SKILL_FLAVORS = [
+  '袋底一撮鹽，揚出去就盲一陣。',
+  '秤砣脫手，專砸對家腕骨。',
+  '鹽粉一罩，睜不開眼。',
+  '收秤之前，補多一刀。',
+];
+
+/** 填一份過得 chargenReport 嘅草稿：文字隨機、觸發跟表、招式威力唔超、六圍守 clamps／預算／forbid。 */
+export function randomDraft(config: ChapterConfig, rng: () => number = Math.random): ChargenDraft {
+  const trigger = pickOne(config.chargen.skill.triggers, rng);
+  const draft: ChargenDraft = {
+    name: pickOne(RANDOM_NAMES, rng),
+    catchphrase: pickOne(RANDOM_PHRASES, rng),
+    skillName: pickOne(RANDOM_SKILL_NAMES, rng),
+    skillFlavor: pickOne(RANDOM_SKILL_FLAVORS, rng),
+    skillTrigger: trigger,
+    effects: randomEffects(config, rng),
+    stats: randomStats(config, rng),
+  };
+  if (chargenReport(config, draft).valid) return draft;
+  return fallbackDraft(config);
+}
+
 export function draftToPlayer(config: ChapterConfig, draft: ChargenDraft): PlayerState {
   const effects = draft.effects.map((effect) => ({ op: effect.op, value: effect.value }));
   const inventory: Record<string, number> = {};
@@ -404,6 +430,123 @@ export function toggleEquip(config: ChapterConfig, player: PlayerState, goodId: 
 
 export function bringingWeapon(config: ChapterConfig, player: PlayerState): boolean {
   return player.equipment.weapon === config.combat.warnIfNoWeapon.itemId;
+}
+
+function randomStats(config: ChapterConfig, rng: () => number): Record<string, number> {
+  const stats = { ...config.chargen.statPool.baseline };
+  const keys = Object.keys(stats);
+  const steps = 12 + Math.floor(rng() * 12);
+  for (let i = 0; i < steps; i += 1) {
+    const key = pickOne(keys, rng);
+    const dir: 1 | -1 = rng() < 0.7 ? 1 : -1;
+    const trial = { ...stats };
+    stepStat(config, trial, key, dir);
+    if (trial[key] === stats[key] || !legalStatSpread(config, trial)) continue;
+    stats[key] = trial[key] ?? stats[key] ?? 0;
+  }
+  for (let i = 0; i < keys.length * 2 && pointsSpent(config, stats) < 1; i += 1) {
+    const key = pickOne(keys, rng);
+    const trial = { ...stats };
+    stepStat(config, trial, key, 1);
+    if (trial[key] === stats[key] || !legalStatSpread(config, trial)) continue;
+    stats[key] = trial[key] ?? stats[key] ?? 0;
+  }
+  return stats;
+}
+
+function legalStatSpread(config: ChapterConfig, stats: Record<string, number>): boolean {
+  for (const key of Object.keys(config.chargen.statPool.baseline)) {
+    if (statError(config, stats, key)) return false;
+  }
+  const spent = pointsSpent(config, stats);
+  const budget = config.chargen.statPool.budgetPoints;
+  if (!Number.isFinite(spent) || spent > budget + 1e-6) return false;
+  return activeForbidStats(config, stats).length === 0;
+}
+
+function randomEffects(config: ChapterConfig, rng: () => number): EffectSelection[] {
+  const maxEffects = Math.max(1, config.chargen.skill.maxEffects);
+  const maxPower = config.chargen.skill.maxPowerScore;
+  const ops = Object.keys(config.chargen.skill.ops);
+  const count = 1 + Math.floor(rng() * maxEffects);
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const chosen = shuffle(ops, rng).slice(0, count);
+    const effects: EffectSelection[] = [];
+    let power = 0;
+    let ok = chosen.length === count;
+    for (const op of chosen) {
+      const def = config.chargen.skill.ops[op];
+      if (!def) {
+        ok = false;
+        break;
+      }
+      const options = discreteValues(def).flatMap((value) => {
+        const score = effectPowerScore(op, value);
+        if (score === null || !Number.isFinite(score) || score < -1e-9) return [];
+        if (power + score > maxPower + 1e-6) return [];
+        return [{ value, score }];
+      });
+      const pick = options.length > 0 ? options[Math.floor(rng() * options.length)] : undefined;
+      if (!pick) {
+        ok = false;
+        break;
+      }
+      effects.push({ op, value: pick.value });
+      power += pick.score;
+    }
+    if (ok && effects.length >= 1 && effects.length <= maxEffects && power <= maxPower + 1e-6) return effects;
+  }
+  return fallbackEffects(config);
+}
+
+function fallbackEffects(config: ChapterConfig): EffectSelection[] {
+  let safest: EffectSelection | null = null;
+  let safestScore = Number.POSITIVE_INFINITY;
+  for (const [op, def] of Object.entries(config.chargen.skill.ops)) {
+    for (const value of discreteValues(def)) {
+      const score = effectPowerScore(op, value);
+      if (score === null || !Number.isFinite(score) || score < -1e-9) continue;
+      if (score > config.chargen.skill.maxPowerScore + 1e-6) continue;
+      if (score < safestScore) {
+        safestScore = score;
+        safest = { op, value };
+      }
+    }
+  }
+  return safest ? [safest] : [{ op: '', value: Number.NaN }];
+}
+
+function fallbackDraft(config: ChapterConfig): ChargenDraft {
+  return {
+    name: '阿鹽',
+    catchphrase: '秤平先開市',
+    skillName: '碎鹽入眼',
+    skillFlavor: '袋底一撮鹽，揚出去就盲一陣。',
+    skillTrigger: config.chargen.skill.triggers[0] ?? '',
+    effects: fallbackEffects(config),
+    stats: { ...config.chargen.statPool.baseline },
+  };
+}
+
+function pickOne<T>(items: readonly T[], rng: () => number): T {
+  if (items.length === 0) throw new Error('冇得抽');
+  const index = Math.min(items.length - 1, Math.floor(rng() * items.length));
+  const item = items[index];
+  if (item === undefined) throw new Error('冇得抽');
+  return item;
+}
+
+function shuffle<T>(items: readonly T[], rng: () => number): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const a = copy[i];
+    const b = copy[j];
+    if (a === undefined || b === undefined) continue;
+    copy[i] = b;
+    copy[j] = a;
+  }
+  return copy;
 }
 
 function whenMatches(when: Record<string, number>, stats: Record<string, number>): boolean {

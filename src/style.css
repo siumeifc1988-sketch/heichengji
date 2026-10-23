@@ -50,6 +50,11 @@ button.step {
 
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
+button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,

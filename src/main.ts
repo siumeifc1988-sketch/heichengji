@@ -3,22 +3,27 @@ import { applyStanceSettle, boardBuy, boardSell, openBlackMarket, sellProgress, 
 import { createBattle, playerAction } from './combat.ts';
 import { loadConfig } from './config.ts';
 import { SAVE_NODE } from './design.ts';
-import { formatNum } from './format.ts';
+import { formatNum, formatSigned } from './format.ts';
 import { SCREEN_LABEL } from './labels.ts';
 import {
+  activeForbidStats,
   bringingWeapon,
   buyOne,
   chargenReport,
   discreteValues,
   draftToPlayer,
+  randomDraft,
   sellOne,
+  statAtBound,
+  statError,
+  statPointDelta,
   stepEffectValue,
   stepStat,
   toggleEquip,
 } from './rules.ts';
 import { clearSave, createAppState, readSave, readSaveBundle, writeSave } from './state.ts';
 import type { AppState, ChapterConfig, PlayerState } from './types.ts';
-import { renderApp, renderFatal } from './view.ts';
+import { renderApp, renderFatal, renderIssues } from './view.ts';
 
 const appRoot = document.querySelector('#app');
 if (!(appRoot instanceof HTMLElement)) throw new Error('缺 #app');
@@ -28,6 +33,14 @@ let config: ChapterConfig | null = null;
 let state: AppState | null = null;
 let lastScreen: AppState['screen'] | null = null;
 let composing = false;
+let autoTimer: ReturnType<typeof setTimeout> | null = null;
+const AUTO_ATTACK_MS = 650;
+
+interface FocusSnapshot {
+  id: string;
+  start: number | null;
+  end: number | null;
+}
 
 void boot();
 
@@ -61,6 +74,7 @@ async function boot(): Promise<void> {
 
 function draw(): void {
   if (!config || !state || !root) return;
+  if (state.screen !== 'combat') stopAutoFight();
   const screenChanged = lastScreen !== state.screen;
   const focus = screenChanged ? null : captureFocus();
   const scrollY = screenChanged ? 0 : window.scrollY;
@@ -70,8 +84,9 @@ function draw(): void {
   if (log) log.scrollTop = log.scrollHeight;
   if (state.warnFight) {
     document.getElementById('warn-confirm')?.focus();
-  } else if (focus) restoreFocus(focus);
-  else {
+  } else if (focus) {
+    restoreFocus(focus);
+  } else if (screenChanged) {
     const heading = root.querySelector('h2');
     if (heading instanceof HTMLElement) {
       heading.tabIndex = -1;
@@ -157,17 +172,21 @@ function onClick(event: Event): void {
     draw();
     return;
   }
+  if (action === 'random-fill') {
+    app.draft = randomDraft(chapter);
+    app.note = '';
+    draw();
+    return;
+  }
+  if (action === 'random-enter') {
+    app.draft = randomDraft(chapter);
+    app.note = '';
+    confirmChargen(chapter, app);
+    draw();
+    return;
+  }
   if (action === 'confirm') {
-    const report = chargenReport(chapter, app.draft);
-    if (!report.valid) {
-      app.note = '仲未開得檔。';
-      draw();
-      return;
-    }
-    const player = draftToPlayer(chapter, app.draft);
-    app.player = player;
-    app.screen = 'market';
-    app.note = `開檔完成。本金 ${formatNum(player.cash)} ${chapter.currency.label}（設計初值），可以睇市集價錢。`;
+    confirmChargen(chapter, app);
     draw();
     return;
   }
@@ -231,17 +250,22 @@ function onClick(event: Event): void {
     draw();
     return;
   }
-  if (action === 'battle-attack' || action === 'battle-guard' || action === 'battle-skill' || action === 'battle-salt') {
-    if (!app.player || !app.battle) return;
-    const move = action.slice('battle-'.length) as 'attack' | 'guard' | 'skill' | 'salt';
-    playerAction(app.battle, chapter, app.player, move, Math.random);
-    if (app.battle.phase === 'win') {
-      app.player.flags.beatXiangzhu = true;
-      app.screen = 'win';
-    } else if (app.battle.phase === 'lose') {
-      app.screen = 'gameover';
+  if (action === 'battle-auto') {
+    if (!app.player || !app.battle || app.screen !== 'combat') return;
+    if (app.autoFight) {
+      stopAutoFight();
+      draw();
+      return;
     }
+    app.autoFight = true;
     draw();
+    scheduleAutoAttack();
+    return;
+  }
+  if (action === 'battle-attack' || action === 'battle-guard' || action === 'battle-skill' || action === 'battle-salt') {
+    stopAutoFight();
+    const move = action.slice('battle-'.length) as 'attack' | 'guard' | 'skill' | 'salt';
+    resolveBattleMove(move);
     return;
   }
   if (action === 'enter-black-market') {
@@ -352,14 +376,66 @@ function landPlayer(app: AppState, player: PlayerState): void {
   else app.screen = 'market';
 }
 
+function confirmChargen(chapter: ChapterConfig, app: AppState): void {
+  const report = chargenReport(chapter, app.draft);
+  if (!report.valid) {
+    app.note = '仲未開得檔。';
+    return;
+  }
+  const player = draftToPlayer(chapter, app.draft);
+  app.player = player;
+  app.screen = 'market';
+  app.note = `開檔完成。本金 ${formatNum(player.cash)} ${chapter.currency.label}（設計初值），可以睇市集價錢。`;
+}
+
 function startFight(): void {
   if (!config || !state?.player) return;
+  stopAutoFight();
   state.warnFight = false;
   state.preFightStock = { ...state.player.inventory };
   state.battle = createBattle(config, state.player);
   state.screen = 'combat';
   state.note = '';
   draw();
+}
+
+function stopAutoFight(): void {
+  if (autoTimer !== null) {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+  if (state) state.autoFight = false;
+}
+
+function scheduleAutoAttack(): void {
+  if (autoTimer !== null) clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    autoTimer = null;
+    if (!state?.autoFight || state.screen !== 'combat' || state.battle?.phase !== 'player') {
+      stopAutoFight();
+      return;
+    }
+    resolveBattleMove('attack');
+  }, AUTO_ATTACK_MS);
+}
+
+function resolveBattleMove(move: 'attack' | 'guard' | 'skill' | 'salt'): void {
+  if (!config || !state) return;
+  const app = state;
+  const player = app.player;
+  const battle = app.battle;
+  if (!player || !battle) return;
+  playerAction(battle, config, player, move, Math.random);
+  if (battle.phase === 'win') {
+    player.flags.beatXiangzhu = true;
+    app.screen = 'win';
+    app.autoFight = false;
+  } else if (battle.phase === 'lose') {
+    app.screen = 'gameover';
+    app.autoFight = false;
+  }
+  draw();
+  if (app.autoFight && app.screen === 'combat' && battle.phase === 'player') scheduleAutoAttack();
 }
 
 function onField(event: Event): void {
@@ -395,7 +471,71 @@ function onField(event: Event): void {
   } else {
     return;
   }
+  if (composing) return;
+  const liveField =
+    action === 'field-name' ||
+    action === 'field-catchphrase' ||
+    action === 'field-skill-name' ||
+    action === 'field-skill-flavor' ||
+    action === 'field-trigger' ||
+    action === 'field-stat';
+  if (liveField && state.screen === 'chargen') {
+    syncChargenChrome();
+    return;
+  }
   draw();
+}
+
+function syncChargenChrome(): void {
+  if (!config || !state || state.screen !== 'chargen') return;
+  const report = chargenReport(config, state.draft);
+  const issues = document.getElementById('issues');
+  if (issues) {
+    issues.className = report.valid ? 'report ok' : 'report';
+    issues.innerHTML = renderIssues(report);
+  }
+  const confirmButton = document.getElementById('confirm');
+  if (confirmButton instanceof HTMLButtonElement) confirmButton.disabled = !report.valid;
+
+  const budget = report.pointsBudget;
+  const spent = report.pointsSpent;
+  const remaining = Number.isFinite(spent) ? budget - spent : Number.NaN;
+  const ratio = !Number.isFinite(spent) || budget <= 0 ? 0 : Math.max(0, Math.min(1, spent / budget));
+  const pool = document.getElementById('pool-text');
+  if (pool) {
+    pool.className = report.overBudget ? 'pool-text bad-text' : 'pool-text';
+    pool.textContent = `已用 ${formatNum(spent)} · 預算 ${formatNum(budget)} · 剩餘 ${formatNum(remaining)}`;
+  }
+  const meter = document.getElementById('pool-meter');
+  if (meter instanceof HTMLElement) {
+    meter.className = report.overBudget ? 'meter over' : 'meter';
+    meter.style.setProperty('--fill', ratio.toFixed(4));
+  }
+  const power = document.getElementById('power-text');
+  if (power) {
+    power.className = report.overPower ? 'power bad-text' : 'power';
+    power.textContent = `威力 ${formatNum(report.powerScore)} / ${formatNum(report.powerMax)}`;
+  }
+
+  const forbid = new Set(activeForbidStats(config, state.draft.stats));
+  for (const key of Object.keys(config.chargen.statPool.baseline)) {
+    const row = document.getElementById(`stat-row-${key}`);
+    if (row) {
+      const error = statError(config, state.draft.stats, key);
+      row.className = ['stat', error ? 'bad' : '', forbid.has(key) ? 'forbid' : ''].filter(Boolean).join(' ');
+    }
+    const value = state.draft.stats[key] ?? Number.NaN;
+    const delta = document.getElementById(`stat-delta-${key}`);
+    if (delta) {
+      const points = Number.isFinite(value) ? statPointDelta(config, key, value) : Number.NaN;
+      delta.textContent = `${formatSigned(points)} 點`;
+    }
+    const bounds = statAtBound(config, key, value);
+    const dec = document.getElementById(`stat-dec-${key}`);
+    const inc = document.getElementById(`stat-inc-${key}`);
+    if (dec instanceof HTMLButtonElement) dec.disabled = bounds.atMin;
+    if (inc instanceof HTMLButtonElement) inc.disabled = bounds.atMax;
+  }
 }
 
 function eventElement(event: Event): Element | null {
@@ -410,28 +550,56 @@ function readIndex(element: HTMLElement): number {
   return Number.isInteger(index) ? index : -1;
 }
 
-function captureFocus(): { id: string; start: number | null; end: number | null } | null {
+function captureFocus(): FocusSnapshot | null {
   const element = document.activeElement;
-  if (!(element instanceof HTMLElement) || !element.id || !root?.contains(element)) return null;
+  if (!(element instanceof HTMLElement) || !element.id || !root.contains(element)) return null;
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-    return { id: element.id, start: element.selectionStart, end: element.selectionEnd };
+    let start: number | null = null;
+    let end: number | null = null;
+    try {
+      start = element.selectionStart;
+      end = element.selectionEnd;
+    } catch {
+      /* number inputs throw on selection */
+    }
+    return { id: element.id, start, end };
   }
   return { id: element.id, start: null, end: null };
 }
 
-function restoreFocus(saved: { id: string; start: number | null; end: number | null }): void {
-  const element = document.getElementById(saved.id);
-  if (!(element instanceof HTMLElement)) return;
-  element.focus();
-  if (
-    (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
-    saved.start !== null &&
-    saved.end !== null
-  ) {
-    try {
-      element.setSelectionRange(saved.start, saved.end);
-    } catch {
-      /* number inputs */
+function restoreFocus(saved: FocusSnapshot): void {
+  const apply = (): void => {
+    const element = document.getElementById(saved.id);
+    if (!(element instanceof HTMLElement) || !root.contains(element)) return;
+    if (element instanceof HTMLButtonElement && element.disabled) {
+      const stat = element.dataset.stat;
+      const index = element.dataset.index;
+      const fallback = stat
+        ? document.getElementById(`stat-${stat}`)
+        : index
+          ? document.getElementById(`effect-op-${index}`)
+          : null;
+      if (fallback instanceof HTMLElement) fallback.focus({ preventScroll: true });
+      return;
     }
-  }
+    element.focus({ preventScroll: true });
+    if (
+      (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
+      element.type !== 'number' &&
+      saved.start !== null &&
+      saved.end !== null
+    ) {
+      try {
+        element.setSelectionRange(saved.start, saved.end);
+      } catch {
+        /* number / detached */
+      }
+    }
+  };
+  apply();
+  requestAnimationFrame(() => {
+    const active = document.activeElement;
+    const dumped = !(active instanceof HTMLElement) || active === document.body || active.tagName === 'H2';
+    if (dumped) apply();
+  });
 }
