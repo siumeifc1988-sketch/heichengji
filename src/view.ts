@@ -36,7 +36,7 @@ export function renderApp(config: ChapterConfig, state: AppState): string {
       <p class="eyebrow">第一章 · 九龍城寨</p>
       <div class="title-row">
         <h1>黑秤記</h1>
-        <p class="chapter">${esc(config.chapter.title)}</p>
+        <p class="chapter">《${esc(config.chapter.title)}》</p>
         <div class="seal" aria-hidden="true">黑<br>秤</div>
       </div>
       <ol class="flow">

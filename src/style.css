@@ -162,12 +162,13 @@ code {
 }
 
 .chapter {
-  margin: 0;
+  margin: 0.15rem 0 0;
   grid-column: 1;
   color: var(--cinnabar);
   font-family: var(--serif);
   font-weight: 900;
-  letter-spacing: 0.28em;
+  font-size: 1.35rem;
+  letter-spacing: 0.32em;
 }
 
 .seal {
