@@ -50,9 +50,12 @@ export interface M3Config {
     autoRedeemAppliesToStock: boolean;
     showBeforeAfterCash: boolean;
   };
+  /** 立場結算後的升舖正文。缺則用 promotion.body。 */
+  promotionByStance?: Record<string, string>;
   chapterEnd: {
     xiangzhuRematch: boolean;
     actions: string[];
+    closing?: string;
   };
 }
 
@@ -67,6 +70,8 @@ export interface MarketConfig {
   priceFormula: string;
   taxApplies: boolean;
   volumeNote?: string;
+  /** 市集目標句。旁白，不參與計價。 */
+  objective?: string;
 }
 
 export interface GangRule {
@@ -116,6 +121,8 @@ export interface PostFightBlackMarket {
     preservePlayerStock: boolean;
     addWinLootStub: LootStub[];
   };
+  /** 戰勝短句。不參與計價。 */
+  winLine?: string;
 }
 
 export interface StanceChoice {
@@ -216,6 +223,8 @@ export interface EnemyDef {
   spd: number;
   dodge: number;
   skill: EnemySkill;
+  /** 開戰譏語。不參與公式。 */
+  taunts?: string[];
 }
 
 export interface EquipmentState {

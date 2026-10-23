@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "chapter": {
-    "id": "ch1_salt_and_blood",
-    "title": "鹽與血",
+    "id": "ch1_grain_and_blood",
+    "title": "糧與血",
     "startShopLv": 1,
     "endShopLv": 2,
     "startSlots": 3,
@@ -19,9 +19,9 @@
   "prologue": {
     "skippable": true,
     "beats": [
-      "王城鹽貴如金，軍刀卻一路在漲。",
-      "你在黑市只剩破秤砣、碎鹽、一只破舊鹽袋。",
-      "管事丟來帶血通緝令——畫像像活人，卻無後端；他要你去教訓鹽幫香主，才有立攤資格。"
+      "九龍城寨，夜不收燈。巷口黑市只認兩塊招牌：義衡盟收保護、批立檔；囤糧閣把陳米攥在手裏，米價一日三變。外面有人炒金炒樓；寨裏更清楚——食物比金重要。",
+      "你初來，行囊只有破秤砣、半袋陳米、一只舊米袋。義衡管事把帶血通緝令拍在櫃上：囤糧閣主表面上屯米，暗地夾帶毒品，壞了寨裏規矩。勝則准立檔；敗則寨不收死人。",
+      "畫像像活人，紙只是嚇馬。糧荒將至。有米能活，有毒能暴利——你被點名走進夾縫。"
     ]
   },
   "chargen": {
@@ -140,7 +140,7 @@
   "goods": {
     "blade": {
       "id": "city_blade",
-      "name": "城主軍刀",
+      "name": "義衡軍刀",
       "basePrice": 40,
       "index": 1.0,
       "slot": "weapon",
@@ -153,12 +153,12 @@
           "critMul": 1.5,
           "atkAdd": 0
         },
-        "uiHint": "裝備後攻擊可爆擊；唔買都可以開戰，但好險。"
+        "uiHint": "裝備後攻擊可爆擊。不買亦可開戰，但此戰凶險。"
       }
     },
     "salt": {
       "id": "salt_bang_salt",
-      "name": "鹽幫粗鹽",
+      "name": "陳米",
       "basePrice": 12,
       "index": 1.0,
       "slot": "consumable",
@@ -168,7 +168,7 @@
         "combat": {
           "maxPerBattle": 1,
           "actionId": "salt_whet",
-          "actionLabel": "抹刀",
+          "actionLabel": "陳米抹刀",
           "nextAttack": {
             "dmgAdd": 2,
             "hitAdd": 10
@@ -195,7 +195,7 @@
           "holdQtyForIntelOption": 3,
           "intelOptionId": "rebel_ear"
         },
-        "uiHint": "裝備後閃+5，開戰多一行香主技提示；持有≥3 解鎖終局前「義軍耳目」。"
+        "uiHint": "裝備後閃+5，開戰多一行閣主技提示；持有≥3 解鎖終局前「義軍耳目」。"
       }
     }
   },
@@ -209,20 +209,20 @@
     "warnIfNoWeapon": {
       "itemId": "city_blade",
       "title": "空手赴約",
-      "body": "你未帶城主軍刀。黑市唔養莽夫——此戰戰敗即死，存檔結束。仍要上？",
+      "body": "你未帶義衡軍刀。寨裡不養莽夫——此戰戰敗即死，存檔結束。仍要上？",
       "confirmLabel": "仍然開戰",
-      "cancelLabel": "返市集備戰"
+      "cancelLabel": "返回市集備戰"
     },
     "onDefeat": "game_over",
     "gameOver": {
-      "title": "秤砣墜地",
-      "body": "香主收割完畢。黑市唔記無名屍——本局結束。",
+      "title": "寨不收死人",
+      "body": "囤糧閣主收割完畢。寨裡不記無名屍——本局結束。",
       "actions": [
         "reload_last_open_board",
         "new_run"
       ]
     },
-    "note": "設計裁決：可無刀開戰；無刀只警告唔阻擋。戰敗=死亡（改寫舊 GDD 落敗不死）。刀係投資課，唔係硬門檻。"
+    "note": "設計裁決：可無刀開戰；無刀只警告不阻擋。戰敗=死亡。刀是投資課，不是硬門檻。"
   },
   "player": {
     "atk": 8,
@@ -236,7 +236,7 @@
   "enemies": {
     "xiangzhu": {
       "id": "salt_bang_xiangzhu",
-      "name": "鹽幫香主",
+      "name": "囤糧閣主",
       "atk": 6,
       "def": 4,
       "hp": 24,
@@ -253,13 +253,17 @@
           "atkPerTurnBonus": 1
         },
         "reapStaysOn": true
-      }
+      },
+      "taunts": [
+        "又一個來送米的。",
+        "還是來查貨的？"
+      ]
     }
   },
   "pillars": {
-    "investSelfOrAssets": "文可以買刀／鹽／布強化這一仗，也可以囤貨等立場變價；兩條都係合法核心。",
-    "bladeLesson": "軍刀非強制，但無刀戰敗=死；用死亡教「草率＝清算」，唔用軟失敗送藍圖。",
-    "marketIsEnding": "勝後強制返黑市一次：價／量已被幫派+勝負改過；賣掉貨先見到正義1.3x／黑心1.35x套利，先至定結局。"
+    "investSelfOrAssets": "文可以買刀／陳米／布強化這一仗，也可以囤貨等立場變價；兩條都是合法核心。",
+    "bladeLesson": "軍刀非強制，但無刀戰敗=死；用死亡教「草率＝清算」，不用軟失敗送藍圖。",
+    "marketIsEnding": "勝後強制返黑市一次：價／量已被幫派+勝負改過；賣掉貨先見到揭發約 1.3x／隱瞞約 1.35x 套利，才定結局。"
   },
   "nonGoals": [
     "online",
@@ -271,18 +275,19 @@
   ],
   "market": {
     "boardId": "black_market",
-    "label": "黑市行情板",
+    "label": "九龍城寨巷口黑市",
     "priceFormula": "basePrice * index",
     "taxApplies": true,
-    "volumeNote": "volumeMul 影響可成交量／拋售上限；主線事件改 volumeMul 與 index"
+    "volumeNote": "volumeMul 影響可成交量／拋售上限；主線事件改 volumeMul 與 index",
+    "objective": "備戰 → 挑戰囤糧閣主 → 活著回來立檔。空手可戰，沒人替傻瓜收屍。毒品不上板。"
   },
   "postFightBlackMarket": {
     "id": "s1b_forced_after_xiangzhu",
     "trigger": "flags.beatXiangzhu == true && flags.postFightMarketDone != true",
     "forceReturn": true,
     "skipEndingUntil": "postFightMarketDone",
-    "title": "黑市還在吵",
-    "body": "香主倒下嘅消息已經傳開。你被推回行情板——庫存還在，價同成交量已經因幫派立場同這一仗改過。先做一輪買賣，先至去見管事定結局。",
+    "title": "當夜過手",
+    "body": "閣主倒下的消息已經傳開。你被按回行情板——庫存還在，價與成交量已因幫派立場與這一仗改過。當夜必須過手。先做一輪買賣，再去見管事問立場。",
     "gangResolve": {
       "mode": "inventory_bias",
       "note": "開戰前庫存偏置定幫派訊號；平手則用 defaultWinShock",
@@ -292,7 +297,7 @@
             "cloth_qty_gte": 2
           },
           "gang": "rebel",
-          "label": "義軍氣味"
+          "label": "義衡盟氣味"
         },
         {
           "when": {
@@ -300,14 +305,14 @@
             "salt_qty_gte": 2
           },
           "gang": "city",
-          "label": "城主刀客"
+          "label": "義衡刀客"
         },
         {
           "when": {
             "salt_qty_gte": 3
           },
           "gang": "salt_bang",
-          "label": "鹽線中人"
+          "label": "囤糧中人"
         }
       ],
       "fallbackGang": "unaligned"
@@ -372,7 +377,7 @@
     "mustSell": {
       "required": true,
       "minSellActions": 1,
-      "hint": "至少成功拋售一次（任意貨≥1），先解鎖「去見管事」。",
+      "hint": "至少成功拋售一次（任意貨≥1），才解鎖「去見管事」。",
       "unlockAction": "meet_steward"
     },
     "inventory": {
@@ -380,19 +385,20 @@
       "addWinLootStub": [
         {
           "id": "salt_bang_badge",
-          "name": "鹽幫腰牌",
+          "name": "囤糧閣腰牌",
           "qty": 1,
           "sellable": false
         }
       ]
-    }
+    },
+    "winLine": "腰牌入袋。袋縫發暗，氣味不單是米。"
   },
   "stance": {
     "afterPostFightMarket": true,
     "choices": [
       {
         "id": "justice",
-        "label": "揭發（正義）",
+        "label": "助義衡盟（揭米面毒底）",
         "sellMul": 1.3,
         "appliesTo": [
           "rebel_cloth"
@@ -402,11 +408,11 @@
           "rebel_cloth": 0.3,
           "city_blade": -0.05
         },
-        "note": "設計初值：布衣路線套利約 1.3x（相對勝後市價再結算）"
+        "note": "揭開米面毒底：陳米崩盤，布衣暴漲。管事批立檔字據，黑店升為固定攤。"
       },
       {
         "id": "dark",
-        "label": "隱瞞嫁禍（黑心）",
+        "label": "助囤糧閣（隱瞞護盤）",
         "sellMul": 1.35,
         "appliesTo": [
           "city_blade"
@@ -416,19 +422,19 @@
           "salt_bang_salt": 0.1,
           "rebel_cloth": -0.2
         },
-        "note": "設計初值：軍刀路線套利約 1.35x"
+        "note": "隱瞞護盤：軍刀大漲，布衣下跌。寨中默許立檔。"
       }
     ],
     "flow": "beatXiangzhu → forced black market (shock) → must sell ≥1 → stance → final settle → shopLv2 stub",
-    "note": "勝後唔直接選結局；套利體感嚟自強制黑市拋售，立場倍率用 1.3／1.35（細過舊 GDD 極端％，P0 易讀）。"
+    "note": "勝後不直接選結局；套利體感來自強制黑市拋售，立場倍率用 1.3／1.35。"
   },
   "m3": {
     "id": "ch1_close",
     "promotion": {
       "fromShopLv": 1,
       "toShopLv": 2,
-      "title": "固定攤位",
-      "body": "管事蓋印：你唔再係流動小販。櫃位同稅已經改寫——黑市認你呢個攤。"
+      "title": "固定攤",
+      "body": "義衡管事蓋印：你不再是流動小販。櫃位與稅已經改寫——巷口黑市認你這個攤。"
     },
     "settle": {
       "autoRedeemAppliesToStock": true,
@@ -439,7 +445,12 @@
       "actions": [
         "new_run",
         "stay_on_board_lv2"
-      ]
+      ],
+      "closing": "米仍比金重要；毒仍比米更髒。第一章《糧與血》完。"
+    },
+    "promotionByStance": {
+      "justice": "揭開米面毒底。義衡管事批下立檔字據，黑店升為固定攤。櫃位與稅已經改寫。",
+      "dark": "隱瞞護盤。囤糧閣默許立檔。你不再是流動小販，櫃位與稅已經改寫。"
     }
   },
   "save": {

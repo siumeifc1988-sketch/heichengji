@@ -12,6 +12,7 @@ import {
   chargenReport,
   discreteValues,
   draftToPlayer,
+  firstEnemyName,
   randomDraft,
   sellOne,
   statAtBound,
@@ -210,7 +211,7 @@ function onClick(event: Event): void {
   if (action === 'fight') {
     if (!app.player) return;
     if (xiangzhuClosed(chapter, app.player)) {
-      app.note = '香主已了結。';
+      app.note = `${firstEnemyName(chapter) ?? '對手'}已了結。`;
       draw();
       return;
     }
@@ -313,7 +314,7 @@ function onClick(event: Event): void {
     if (!app.player?.settle) return;
     app.screen = 'blackmarket';
     app.battle = null;
-    app.note = '留喺攤檔。香主已了結。';
+    app.note = `留在攤上。${firstEnemyName(chapter) ?? '對手'}已了結。`;
     writeSave(chapter, app.player, app.screen);
     draw();
     return;
@@ -358,7 +359,7 @@ function onClick(event: Event): void {
     return;
   }
   if (action === 'restart') {
-    if (!window.confirm('清走本機存檔，返去序幕？')) return;
+    if (!window.confirm('清走本機存檔，返回序章？')) return;
     clearSave();
     state = createAppState(chapter, false);
     draw();

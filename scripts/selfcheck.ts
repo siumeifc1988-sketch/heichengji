@@ -37,6 +37,11 @@ const config = parseConfig(
   JSON.parse(readFileSync(new URL('../public/config/chapter1.json', import.meta.url), 'utf8')),
 );
 
+assert(config.chapter.title === '糧與血', 'chapter title');
+assert(Object.values(config.enemies)[0]?.name === '囤糧閣主', 'enemy is the grain hoarder');
+assert(config.goods.blade?.name === '義衡軍刀', 'blade renamed');
+assert(config.goods.salt?.name === '陳米', 'salt renamed to aged rice');
+assert(config.goods.cloth?.name === '義軍布衣', 'cloth name unchanged');
 assert(config.prologue.skippable === true, 'prologue skippable');
 assert(config.prologue.beats.length === 3, 'three beats');
 assert(config.chargen.statPool.budgetPoints === 6, 'budget');
@@ -46,8 +51,8 @@ assert(config.chargen.skill.maxEffects === 2, 'max effects');
 assert(Object.keys(config.goods).length === 3, 'three goods');
 
 const expectedPrices: Record<string, number> = {
-  城主軍刀: 40,
-  鹽幫粗鹽: 12,
+  義衡軍刀: 40,
+  陳米: 12,
   義軍布衣: 8,
 };
 for (const good of Object.values(config.goods)) {

@@ -109,8 +109,12 @@ export function createBattle(config: ChapterConfig, player: PlayerState): Battle
   };
 
   const rules = config.combat;
+  const taunts = enemyDef.taunts ?? [];
+  if (taunts.length > 0) {
+    battle.log.push(`${enemyDef.name}譏道：${taunts.map((line) => `「${line}」`).join('')}`);
+  }
   battle.log.push(
-    `對決開始。命中壓喺 ${formatNum(rules.hitFloor)} 至 ${formatNum(rules.hitCeil)}。守勢加 ${formatNum(rules.guardDefBonus)} 防禦。`,
+    `對決開始。命中壓在 ${formatNum(rules.hitFloor)} 至 ${formatNum(rules.hitCeil)}。守勢加 ${formatNum(rules.guardDefBonus)} 防禦。`,
   );
   const cloth = equippedCloth(config, player);
   if (cloth?.combat?.dodgeAdd) {
@@ -184,7 +188,7 @@ function enemyTurn(battle: BattleState, config: ChapterConfig, player: PlayerSta
   if (battle.reap) {
     battle.enemy.atk += skill.onTrigger.atkPerTurnBonus;
     battle.log.push(
-      `收割未停，攻擊 +${formatNum(skill.onTrigger.atkPerTurnBonus)}，而家 ${formatNum(battle.enemy.atk)}。`,
+      `收割未停，攻擊 +${formatNum(skill.onTrigger.atkPerTurnBonus)}，現在 ${formatNum(battle.enemy.atk)}。`,
     );
   }
   strike(battle, config, player, 'enemy', rng);
@@ -193,7 +197,7 @@ function enemyTurn(battle: BattleState, config: ChapterConfig, player: PlayerSta
     battle.enemy.def = battle.enemyBaseDef;
     battle.enemy.spd = battle.enemyBaseSpd;
     battle.enemy.atk = battle.enemyBaseAtk;
-    battle.log.push('收割過去，香主回復原狀。');
+    battle.log.push(`收割過去，${battle.enemy.name}回復原狀。`);
   }
   if (battle.player.hp <= 0) {
     finish(battle, 'lose');
@@ -282,7 +286,7 @@ function afterPlayerHurt(battle: BattleState, config: ChapterConfig, player: Pla
 function useSalt(battle: BattleState, config: ChapterConfig, player: PlayerState): void {
   const salt = saltAction(config);
   if (!salt) {
-    battle.log.push('冇可抹嘅鹽。');
+    battle.log.push('沒有可抹的陳米。');
     return;
   }
   if (battle.saltUses >= salt.maxPerBattle) {

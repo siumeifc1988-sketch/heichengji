@@ -326,13 +326,13 @@ export function chargenReport(config: ChapterConfig, draft: ChargenDraft): Charg
   };
 }
 
-const RANDOM_NAMES = ['阿鹽', '秤仔', '灰斗', '陳末', '老秤', '細鹽', '黑斗', '阿灰'];
-const RANDOM_PHRASES = ['秤平先開市', '鹽盡先收秤', '先問價後動手', '黑市唔賒帳', '刀鈍鹽還在'];
-const RANDOM_SKILL_NAMES = ['碎鹽入眼', '破秤一擊', '鹽霧罩面', '秤砣砸腕', '收鹽補刀'];
+const RANDOM_NAMES = ['阿米', '秤仔', '巷口', '陳末', '老秤', '米斗', '黑斗', '阿灰'];
+const RANDOM_PHRASES = ['米價先問過', '糧盡先收秤', '先問價後動手', '黑市不賒帳', '刀鈍米還在'];
+const RANDOM_SKILL_NAMES = ['陳米罩眼', '破秤一擊', '米霧罩面', '秤砣砸腕', '收米補刀'];
 const RANDOM_SKILL_FLAVORS = [
-  '袋底一撮鹽，揚出去就盲一陣。',
+  '袋底一撮陳米，揚出去就盲一陣。',
   '秤砣脫手，專砸對家腕骨。',
-  '鹽粉一罩，睜不開眼。',
+  '米塵一罩，睜不開眼。',
   '收秤之前，補多一刀。',
 ];
 
@@ -518,10 +518,10 @@ function fallbackEffects(config: ChapterConfig): EffectSelection[] {
 
 function fallbackDraft(config: ChapterConfig): ChargenDraft {
   return {
-    name: '阿鹽',
-    catchphrase: '秤平先開市',
-    skillName: '碎鹽入眼',
-    skillFlavor: '袋底一撮鹽，揚出去就盲一陣。',
+    name: '阿米',
+    catchphrase: '米價先問過',
+    skillName: '陳米罩眼',
+    skillFlavor: '袋底一撮陳米，揚出去就盲一陣。',
     skillTrigger: config.chargen.skill.triggers[0] ?? '',
     effects: fallbackEffects(config),
     stats: { ...config.chargen.statPool.baseline },
