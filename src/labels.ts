@@ -1,7 +1,7 @@
 import type { ScreenId } from './types.ts';
 
 export const SCREEN_LABEL: Record<ScreenId, string> = {
-  prologue: '序幕',
+  prologue: '序章',
   chargen: '開檔',
   market: '市集',
   combat: '對決',

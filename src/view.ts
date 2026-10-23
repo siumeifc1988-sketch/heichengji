@@ -33,7 +33,7 @@ export function renderApp(config: ChapterConfig, state: AppState): string {
   const screen = state.screen;
   return `<div class="wrap"><div class="sheet" data-screen="${screen}">
     <header>
-      <p class="eyebrow">第一章 · 灰模 M3</p>
+      <p class="eyebrow">第一章 · 九龍城寨</p>
       <div class="title-row">
         <h1>黑秤記</h1>
         <p class="chapter">${esc(config.chapter.title)}</p>
@@ -65,7 +65,7 @@ export function renderApp(config: ChapterConfig, state: AppState): string {
       ${screen === 'gameover' ? renderGameOver(config) : ''}
       <p id="note" class="note" aria-live="polite">${state.note ? esc(state.note) : ''}</p>
     </main>
-    <footer>灰模 M3 · 升舖收章 · 戰敗即完局 · 香主勝後唔再戰</footer>
+    <footer>第一章《${esc(config.chapter.title)}》 · 戰敗即完局 · 米仍比金重要</footer>
   </div></div>`;
 }
 
@@ -75,17 +75,17 @@ function renderPrologue(config: ChapterConfig, state: AppState): string {
   const beat = beats[state.beat] ?? '';
   const continueLabel = last ? '去開檔' : '繼續';
   return `<section>
-    <h2>序幕</h2>
+    <h2>序章</h2>
     ${
       beats.length === 0
-        ? '<p>呢章設定冇序幕文字。</p>'
+        ? '<p>這章設定沒有序章文字。</p>'
         : `<p class="beat-index">第 ${state.beat + 1} 段，共 ${beats.length} 段</p>
            <blockquote class="beat">${esc(beat)}</blockquote>`
     }
     <div class="actions">
       ${
         config.prologue.skippable
-          ? '<button type="button" id="skip" data-action="prologue-skip">跳過序幕</button>'
+          ? '<button type="button" id="skip" data-action="prologue-skip">跳過序章</button>'
           : ''
       }
       ${
@@ -113,10 +113,10 @@ function renderChargen(config: ChapterConfig, state: AppState): string {
       <section class="panel">
         <h3>你是誰</h3>
         <label for="name">名字
-          <input id="name" name="name" data-action="field-name" autocomplete="off" placeholder="例如：阿鹽" value="${esc(state.draft.name)}">
+          <input id="name" name="name" data-action="field-name" autocomplete="off" placeholder="例如：阿米" value="${esc(state.draft.name)}">
         </label>
         <label for="catchphrase">口頭禪
-          <input id="catchphrase" name="catchphrase" data-action="field-catchphrase" autocomplete="off" placeholder="例如：秤平先開市" value="${esc(state.draft.catchphrase)}">
+          <input id="catchphrase" name="catchphrase" data-action="field-catchphrase" autocomplete="off" placeholder="例如：米價先問過" value="${esc(state.draft.catchphrase)}">
         </label>
         <h3>六圍</h3>
         <p id="pool-text" class="pool-text ${report.overBudget ? 'bad-text' : ''}">已用 ${esc(formatNum(spent))} · 預算 ${esc(formatNum(budget))} · 剩餘 ${esc(formatNum(remaining))}</p>
@@ -129,10 +129,10 @@ function renderChargen(config: ChapterConfig, state: AppState): string {
       <section class="panel">
         <h3>自創招式</h3>
         <label for="skill-name">招式名稱
-          <input id="skill-name" data-action="field-skill-name" autocomplete="off" placeholder="例如：碎鹽入眼" value="${esc(state.draft.skillName)}">
+          <input id="skill-name" data-action="field-skill-name" autocomplete="off" placeholder="例如：陳米罩眼" value="${esc(state.draft.skillName)}">
         </label>
         <label for="skill-flavor">招式說明
-          <textarea id="skill-flavor" data-action="field-skill-flavor" rows="3" placeholder="例如：袋底一撮鹽，揚出去就盲一陣">${esc(state.draft.skillFlavor)}</textarea>
+          <textarea id="skill-flavor" data-action="field-skill-flavor" rows="3" placeholder="例如：袋底一撮陳米，揚出去就盲一陣">${esc(state.draft.skillFlavor)}</textarea>
         </label>
         <label for="skill-trigger">觸發時機
           <select id="skill-trigger" data-action="field-trigger">
@@ -235,13 +235,14 @@ function renderEffect(config: ChapterConfig, effect: EffectSelection, index: num
 function renderMarket(config: ChapterConfig, state: AppState): string {
   const player = state.player;
   if (!player) {
-    return `<section><h2>市集看板</h2><p>未有角色。</p>
-      <button type="button" data-action="to-prologue">返去序幕</button></section>`;
+    return `<section><h2>${esc(config.market.label)}</h2><p>未有角色。</p>
+      <button type="button" data-action="to-prologue">返回序章</button></section>`;
   }
   const unit = config.currency.label;
   const enemy = firstEnemyName(config);
   return `<section>
-    <h2>市集看板</h2>
+    <h2>${esc(config.market.label)}</h2>
+    ${config.market.objective ? `<p class="objective" id="market-objective">${esc(config.market.objective)}</p>` : ''}
     <div class="stall">
       <div>
         <p class="stall-name">${esc(player.name)}</p>
@@ -257,12 +258,12 @@ function renderMarket(config: ChapterConfig, state: AppState): string {
     <div id="goods" class="goods">
       ${Object.values(config.goods).map((good) => renderGood(config, player, good.id)).join('')}
     </div>
-    <p class="hint">而家按牌價交易，一件起。稅率跟鋪等顯示，稅點點計唔喺章節設定，未實扣。</p>
+    <p class="hint">現按牌價交易，一件起。稅率隨鋪等顯示；稅點如何計入成交價，章節設定未列公式，故未實扣。</p>
     <section class="combat-stub" aria-labelledby="combat-title">
-      <h3 id="combat-title">街頭</h3>
-      ${player.flags.beatXiangzhu ? '<p class="badge">已教訓香主</p>' : ''}
+      <h3 id="combat-title">通緝對決</h3>
+      ${player.flags.beatXiangzhu ? `<p class="badge">已擊敗${esc(enemy ?? '對手')}</p>` : ''}
       ${renderFightButton(config, player)}
-      <p id="m2-note">${enemy ? `對手係${esc(enemy)}。` : ''}${config.combat.onDefeat === 'game_over' ? '戰敗即完局。' : `戰敗處理：${esc(config.combat.onDefeat)}。`}勝咗會被推去黑市，賣咗貨先見管事。</p>
+      <p id="m2-note">${enemy ? `對手是${esc(enemy)}。` : ''}${config.combat.onDefeat === 'game_over' ? '戰敗即完局。' : `戰敗處理：${esc(config.combat.onDefeat)}。`}空手可戰。勝則當夜過手，賣完貨才問立場。</p>
     </section>
     ${state.warnFight ? renderWarn(config) : ''}
     <div class="actions">
@@ -325,7 +326,7 @@ function renderGood(config: ChapterConfig, player: PlayerState, goodId: string):
           : ''
       }
     </div>
-    ${!canStack && qty >= 1 ? '<p class="hint">唔疊加。</p>' : ''}
+    ${!canStack && qty >= 1 ? '<p class="hint">不疊加。</p>' : ''}
     ${afford || qty >= 1 ? '' : '<p class="warn">現金未夠一件</p>'}
   </article>`;
 }
@@ -349,16 +350,24 @@ function renderCombat(config: ChapterConfig, state: AppState): string {
   const player = state.player;
   if (!battle || !player) {
     return `<section><h2>對決</h2><p>未有戰局。</p>
-      <button type="button" data-action="to-market">返市集</button></section>`;
+      <button type="button" data-action="to-market">返回市集</button></section>`;
   }
   const salt = saltAction(config);
   const saltQty = salt ? (player.inventory[salt.good.id] ?? 0) : 0;
   const saltLeft = salt ? battle.saltUses < salt.maxPerBattle && saltQty >= salt.consumeQty : false;
+  const enemyDef = Object.values(config.enemies)[0];
+  const taunts = enemyDef?.taunts ?? [];
   return `<section>
-    <h2>對決</h2>
+    <h2 id="duel-title">對決</h2>
+    <p class="duel-name" id="duel-opponent">通緝 · ${esc(battle.enemy.name)}</p>
+    ${
+      taunts.length > 0
+        ? `<p class="taunt">${esc(battle.enemy.name)}譏道：${taunts.map((line) => `「${esc(line)}」`).join('')}</p>`
+        : ''
+    }
     <div class="duel">
-      ${renderFighter(battle.player, '我方', battle.player.guarding ? '守勢' : '')}
-      ${renderFighter(battle.enemy, '對方', battle.reap ? '收割' : '')}
+      ${renderFighter(battle.player, '我方', battle.player.guarding ? '守勢' : '', 'self')}
+      ${renderFighter(battle.enemy, '對方', battle.reap ? '收割' : '', 'wanted')}
     </div>
     <div id="battle-log" class="log" aria-live="polite">
       ${battle.log.map((line) => `<p>${esc(line)}</p>`).join('')}
@@ -374,14 +383,21 @@ function renderCombat(config: ChapterConfig, state: AppState): string {
       }
       <button type="button" id="act-auto" data-action="battle-auto" aria-pressed="${state.autoFight ? 'true' : 'false'}">${state.autoFight ? '停止' : '自動'}</button>
     </div>
-    ${state.autoFight ? '<p class="hint" id="auto-hint">自動戰鬥：每回合只會攻擊。撳停止就返手動。</p>' : ''}
+    ${state.autoFight ? '<p class="hint" id="auto-hint">自動戰鬥：每回合只會攻擊。按下停止即回手動。</p>' : ''}
     ${battle.saltReady && salt ? `<p class="hint">下一擊傷害 +${esc(formatNum(salt.dmgAdd))}、命中 +${esc(formatNum(salt.hitAdd))}。</p>` : ''}
   </section>`;
 }
 
-function renderFighter(fighter: { name: string; hp: number; maxHp: number; atk: number; def: number; hit: number; spd: number; dodge: number }, side: string, status: string): string {
+function renderFighter(
+  fighter: { name: string; hp: number; maxHp: number; atk: number; def: number; hit: number; spd: number; dodge: number },
+  side: string,
+  status: string,
+  kind: 'self' | 'wanted',
+): string {
   const pct = fighter.maxHp > 0 ? Math.max(0, Math.min(1, fighter.hp / fighter.maxHp)) : 0;
-  return `<article class="fighter">
+  const chop = kind === 'wanted' ? '通緝' : '立檔';
+  return `<article class="fighter ${kind}">
+    <p class="chop" aria-hidden="true">${chop}</p>
     <h3>${esc(side)} · ${esc(fighter.name)}</h3>
     <p class="hp-text">氣血 ${esc(formatNum(fighter.hp))} / ${esc(formatNum(fighter.maxHp))}${status ? ` · ${esc(status)}` : ''}</p>
     <div class="hp" aria-hidden="true"><span style="width:${(pct * 100).toFixed(1)}%"></span></div>
@@ -393,10 +409,12 @@ function renderWin(config: ChapterConfig, state: AppState): string {
   const enemy = firstEnemyName(config) ?? '對手';
   const name = state.player?.name ?? '';
   const next = config.postFightBlackMarket.title;
+  const winLine = config.postFightBlackMarket.winLine;
   return `<section>
     <h2>戰勝</h2>
     <p class="beat">${esc(name)}收秤。${esc(enemy)}倒地。</p>
-    <p>未到結局。下一屏係「${esc(next)}」，價同成交量會先改，賣咗貨先見管事。</p>
+    ${winLine ? `<p>${esc(winLine)}</p>` : ''}
+    <p>未到結局。當夜必須過手。下一屏是「${esc(next)}」，價與成交量會先改，賣完貨才問立場。</p>
     <div class="actions">
       <button type="button" id="enter-black-market" class="primary" data-action="enter-black-market">入黑市</button>
     </div>
@@ -407,7 +425,7 @@ function renderBlackMarket(config: ChapterConfig, state: AppState): string {
   const player = state.player;
   const post = config.postFightBlackMarket;
   if (!player?.board?.opened) {
-    return `<section><h2>${esc(post.title)}</h2><p>黑市未開板。</p></section>`;
+    return `<section><h2>${esc(post.title)}</h2><p>黑市尚未開板。</p></section>`;
   }
   const unit = config.currency.label;
   const progress = sellProgress(config, player);
@@ -416,8 +434,8 @@ function renderBlackMarket(config: ChapterConfig, state: AppState): string {
   const banner = post.onEnter.showDiffBanner
     ? `<section id="banner" class="banner" aria-label="價差">
         <h3>價差</h3>
-        <p>幫派訊號：${esc(gang)}。庫存照舊，牌價同成交量已改。</p>
-        ${bannerHasChange(lines) ? '' : '<p class="warn">呢輪衝擊冇改到價或成交量。</p>'}
+        <p>幫派訊號：${esc(gang)}。庫存照舊，牌價與成交量已改。</p>
+        ${bannerHasChange(lines) ? '' : '<p class="warn">這一輪衝擊沒有改到價或成交量。</p>'}
         <ul class="diffs">
           ${lines.map((line) => `<li>
             <strong>${esc(line.name)}</strong>
@@ -429,7 +447,7 @@ function renderBlackMarket(config: ChapterConfig, state: AppState): string {
     : '';
   const tax = config.chapter.taxByShopLv[String(player.shopLv)];
   const taxNote = config.market.taxApplies && typeof tax === 'number'
-    ? `<p class="hint">鋪稅 ${esc(formatNum(tax))} 記低咗。牌價仍係底價乘指數；稅點點計唔喺章節設定。</p>`
+    ? `<p class="hint">鋪稅 ${esc(formatNum(tax))} 已記下。牌價仍是底價乘指數；稅點如何計入，章節設定未列公式。</p>`
     : '';
   return `<section>
     <h2>${esc(post.title)}</h2>
@@ -440,12 +458,12 @@ function renderBlackMarket(config: ChapterConfig, state: AppState): string {
     ${taxNote}
     ${
       player.settle
-        ? `<p class="hint">立場已定。香主唔會再打。</p>
+        ? `<p class="hint">立場已定。${esc(firstEnemyName(config) ?? '對手')}不會再打。</p>
            <div class="actions">
              <button type="button" id="to-chapter-end" data-action="finish">章末總表</button>
              <button type="button" id="save" data-action="save">存檔</button>
            </div>`
-        : `<p id="must-sell" class="hint">${esc(post.mustSell.hint)} 而家 ${esc(formatNum(progress.done))} / ${esc(formatNum(progress.need))}。</p>
+        : `<p id="must-sell" class="hint">${esc(post.mustSell.hint)} 現在 ${esc(formatNum(progress.done))} / ${esc(formatNum(progress.need))}。</p>
            <div class="actions">
              <button type="button" id="meet-steward" class="primary" data-action="meet-steward" ${progress.unlocked ? '' : 'disabled'}>去見管事</button>
              <button type="button" id="save" data-action="save">存檔</button>
@@ -456,9 +474,9 @@ function renderBlackMarket(config: ChapterConfig, state: AppState): string {
       ${player.stubs.map((stub) => `<article class="good" data-good-id="${esc(stub.id)}">
         <h3>${esc(stub.name)}</h3>
         <p class="qty">存貨 ${esc(formatNum(stub.qty))}</p>
-        <p class="hint">${stub.sellable ? '可賣。' : '賣唔出。'}</p>
+        <p class="hint">${stub.sellable ? '可賣。' : '賣不出。腰牌只作憑證；袋縫的暗色不上行情板。'}</p>
         <div class="actions tight">
-          <button type="button" disabled>${stub.sellable ? '拋售' : '賣唔出'}</button>
+          <button type="button" disabled>${stub.sellable ? '拋售' : '賣不出'}</button>
         </div>
       </article>`).join('')}
     </div>
@@ -477,20 +495,23 @@ function renderShopFacts(config: ChapterConfig, player: PlayerState, unit: strin
 function renderPromotion(config: ChapterConfig, player: PlayerState): string {
   if (!player.settle) return '';
   const promo = config.m3.promotion;
+  const stanceBody = config.m3.promotionByStance?.[player.flags.stanceId ?? ''] ?? promo.body;
   return `<p class="badge" id="lv2-badge">流動小販 → ${esc(promo.title)}</p>
-    <p class="beat">${esc(promo.body)}</p>`;
+    <p class="beat">${esc(stanceBody)}</p>`;
 }
 
 function renderFightButton(config: ChapterConfig, player: PlayerState): string {
   if (xiangzhuClosed(config, player)) {
     return `<button type="button" id="combat" disabled>已了結</button>`;
   }
-  return `<button type="button" id="combat" data-action="fight" aria-describedby="m2-note">去教訓香主</button>`;
+  const enemy = firstEnemyName(config) ?? '對手';
+  return `<button type="button" id="combat" data-action="fight" aria-describedby="m2-note">挑戰${esc(enemy)}</button>`;
 }
 
 function renderClosedFight(config: ChapterConfig, player: PlayerState): string {
   if (!xiangzhuClosed(config, player)) return '';
-  return `<section class="combat-stub"><h3>街頭</h3><button type="button" id="combat" disabled>已了結</button><p class="hint">香主一戰已完，唔會再開。</p></section>`;
+  const enemy = firstEnemyName(config) ?? '對手';
+  return `<section class="combat-stub"><h3>通緝對決</h3><button type="button" id="combat" disabled>已了結</button><p class="hint">${esc(enemy)}一戰已完，不會再開。</p></section>`;
 }
 
 function renderBoardGood(config: ChapterConfig, player: PlayerState, goodId: string): string {
@@ -526,7 +547,7 @@ function renderBoardGood(config: ChapterConfig, player: PlayerState, goodId: str
 
 function renderStance(config: ChapterConfig, state: AppState): string {
   const player = state.player;
-  if (!player) return `<section><h2>見管事</h2><p>未有角色。</p></section>`;
+  if (!player) return `<section><h2>問立場</h2><p>未有角色。</p></section>`;
   const unit = config.currency.label;
   const settled = player.settle;
   if (settled) {
@@ -536,7 +557,7 @@ function renderStance(config: ChapterConfig, state: AppState): string {
       return `<li>${esc(good?.name ?? line.goodId)} ${esc(formatNum(line.qty))} × ${esc(formatNum(line.unit))} = ${esc(formatNum(line.qty * line.unit))} ${esc(unit)}</li>`;
     }).join('');
     return `<section>
-      <h2>見管事</h2>
+      <h2>問立場</h2>
       ${renderPromotion(config, player)}
       <dl class="stall-meta">${renderShopFacts(config, player, unit)}</dl>
       ${
@@ -545,7 +566,7 @@ function renderStance(config: ChapterConfig, state: AppState): string {
           : ''
       }
       <p id="settle">${choice ? `${esc(choice.label)} ×${esc(formatNum(choice.sellMul))}` : '已結算'}${config.stance.choices.map((item) => `／${esc(item.label)} ${esc(formatNum(item.sellMul))}`).join('')}</p>
-      ${redeemed ? `<ul class="diffs">${redeemed}</ul>` : '<p class="hint">冇剩餘庫存要兌現。</p>'}
+      ${redeemed ? `<ul class="diffs">${redeemed}</ul>` : '<p class="hint">沒有剩餘庫存要兌現。</p>'}
       <div class="actions">
         <button type="button" id="done-ack" class="primary" data-action="finish">章末總表</button>
       </div>
@@ -562,14 +583,14 @@ function renderStance(config: ChapterConfig, state: AppState): string {
         <p class="hint">指數再 ${esc(formatSigned(line.indexDelta))} 之後兌現單價 ${esc(formatNum(line.redeemUnit))} ${esc(unit)}。</p>`).join('')}
       ${choice.note ? `<p class="hint">${esc(choice.note)}</p>` : ''}
       <div class="actions tight">
-        <button type="button" data-action="stance" data-stance="${esc(choice.id)}">揀呢條</button>
+        <button type="button" data-action="stance" data-stance="${esc(choice.id)}">選這一條</button>
       </div>
     </article>`;
   }).join('');
   const summary = config.stance.choices.map((choice) => `${choice.label} ${formatNum(choice.sellMul)}`).join('／');
   return `<section>
-    <h2>見管事</h2>
-    <p>賣完貨先到呢度。兌現單價 =（勝後指數 + 立場指數）× 底價 × 拋售倍率。</p>
+    <h2>問立場</h2>
+    <p>貨物賣完，才問立場。兌現單價等於（勝後指數加立場指數）乘底價，再乘拋售倍率。</p>
     <p id="settle">${esc(summary)}</p>
     <label class="hint" for="redeem-stock">
       <input type="checkbox" id="redeem-stock" data-action="field-redeem" ${redeem ? 'checked' : ''}>
@@ -594,7 +615,7 @@ function renderDone(config: ChapterConfig, state: AppState): string {
   }).join('');
   const buttons = config.m3.chapterEnd.actions.map((action) => {
     if (action === 'new_run') return `<button type="button" id="new-run" data-action="new-run">新開一局</button>`;
-    if (action === 'stay_on_board_lv2') return `<button type="button" id="stay-board" class="primary" data-action="stay-board">留喺黑市看板</button>`;
+    if (action === 'stay_on_board_lv2') return `<button type="button" id="stay-board" class="primary" data-action="stay-board">留在黑市看板</button>`;
     return `<button type="button" disabled>${esc(action)}</button>`;
   }).join('');
   return `<section id="chapter-sheet">
@@ -605,10 +626,11 @@ function renderDone(config: ChapterConfig, state: AppState): string {
       <li>立場：${choice ? `${esc(choice.label)} ×${esc(formatNum(choice.sellMul))}` : '未定'}</li>
       <li>現金：${esc(formatNum(player.cash))} ${esc(unit)}</li>
       <li>幫派：${esc(gang)}</li>
-      <li>已教訓香主：${player.flags.beatXiangzhu ? '是' : '否'}</li>
+      <li>已擊敗${esc(firstEnemyName(config) ?? '對手')}：${player.flags.beatXiangzhu ? '是' : '否'}</li>
       <li>勝後黑市做完：${player.flags.postFightMarketDone ? '是' : '否'}</li>
       ${rows}
     </ul>
+    ${config.m3.chapterEnd.closing ? `<p class="beat" id="chapter-close">${esc(config.m3.chapterEnd.closing)}</p>` : ''}
     <div class="actions">${buttons}</div>
   </section>`;
 }
@@ -623,7 +645,7 @@ function renderGameOver(config: ChapterConfig): string {
   const over = config.combat.gameOver;
   const buttons = over.actions.map((action) => {
     if (action === 'reload_last_open_board') {
-      return `<button type="button" id="gameover-reload" data-action="gameover-reload">讀返市集存檔</button>`;
+      return `<button type="button" id="gameover-reload" data-action="gameover-reload">讀回市集存檔</button>`;
     }
     if (action === 'new_run') {
       return `<button type="button" id="gameover-new" class="primary" data-action="gameover-new">重新開檔</button>`;
@@ -633,7 +655,7 @@ function renderGameOver(config: ChapterConfig): string {
   return `<section>
     <h2>${esc(over.title)}</h2>
     <p class="beat">${esc(over.body)}</p>
-    <p class="hint">讀檔會返到最近一次 OpenBoard 市集存檔。未存檔嘅市集變動會一併冇咗。</p>
+    <p class="hint">讀檔會回到最近一次市集存檔。尚未存檔的市集變動會一併消失。</p>
     <div class="actions">${buttons}</div>
   </section>`;
 }
